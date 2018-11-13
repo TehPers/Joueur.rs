@@ -1,0 +1,9 @@
+[package]
+name = "Joueur"
+version = "0.1.0"
+authors = ["Russley Shaw <russleyshaw@gmail.com>"]
+
+[dependencies]
+log = "0.4.6"
+serde = "1.0.80"
+clap = "2.32.0"
