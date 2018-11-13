@@ -1,4 +1,4 @@
-# C++ Joueur Client
+# Rust Joueur Client
 
 This is the client for the [Cadre][cadre] AI framework. It can play multiple different games, though you will probably only be interested in one at a time.
 
@@ -21,37 +21,7 @@ Linux does not have any dependencies beyond a C++ compiler and build system. You
 
 ### Windows
 
-There are two ways to get this client working on Windows.
-
-#### Visual Studio
-
-1. You will need to install a recent version of [Visual Studio][vs] with VC++.
-2. Add VC++ to the command line by running `vcvarsall.bat`. By default this is found at `C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat`.
-3. Install [CMake][cmake] for Windows, and during installation have it added to your PATH.
-4. If you make a make system, you can now just run `make` to build the project, or...
-5. If you want to work **in** Visual Studio run the script `make_vs_proj.bat`, then, in the newly created `build/` directory use that `sln` file generated.
-
-You'll also need to use the following command line arguments when running the client to connect to our game server:
-
-`GAME_NAME -s game.siggame.io`
-
-#### MinGW
-
-MinGW is another solution on Windows if you do not wish to use Visual Studio or VC++ compilers, and instead would prefer a compiler like GCC (but then why are you not on Linux?).
-
-1. Install [MinGw][mingw]
-2. Have the MinGW Installation Manager, and install the base, make, and gcc packages.
-3. Ensure the `MinGW/bin/` directory is added to your PATH so you can use the packages from the command line
-4. Install [CMake][cmake]
-5. Compile this client by navigating to where you cloned this repo and running `make` or `ming32-make`.
-
-Notes: You may have to set the `cc` environmental variable to the C++ compiler of your choice (gcc.exe probably)
-
 ## Other notes
-
-Always use the `->` operator to access member variables and functions of each class instead of the dot operator `.`.
-
-The only file you should ever modify to create your AI are the `ai.cpp` and `ai.hpp` files. All the other files are needed for the game to work. In addition, you should never be creating your own instances of the Game's classes, nor should you ever try to modify their variables. Instead, treat the Game and its members as a read only structure that represents the game state on the game server. You interact with it by calling the game functions.
 
 Most importantly, **stay out of the impl/ directories**.
 
