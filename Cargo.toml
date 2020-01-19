@@ -1,0 +1,10 @@
+[package]
+name = "joueur"
+version = "0.1.0"
+authors = [
+    "Jacob Fischer <jacob.t.fischer@gmail.com>",
+    "Russley Shaw <russleyshaw@gmail.com>",
+]
+
+[dependencies]
+clap = "2.33.0"
