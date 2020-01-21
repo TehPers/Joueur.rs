@@ -1,7 +1,8 @@
 #[macro_use]
 extern crate clap;
-
 use clap::{App, Arg};
+
+mod joueur;
 
 fn main() {
     let matches = App::new(crate_name!())
@@ -52,9 +53,11 @@ fn main() {
         )
         .get_matches();
 
-    let game = matches.value_of("game").take();
-    match game {
-        Some(v) => println!("TODO: play {}", v),
-        None => println!("This should be impossible"),
-    }
+    let run_data = joueur::RunData{
+        game_name: matches.value_of("game").unwrap_or_default().to_string(),
+        server: matches.value_of("server").unwrap_or_default().to_string(),
+        port: matches.value_of("port").unwrap_or_default().to_string(),
+    };
+
+    joueur::run(&run_data);
 }

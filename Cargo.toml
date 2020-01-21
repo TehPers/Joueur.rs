@@ -1,5 +1,6 @@
 [package]
 name = "joueur"
+edition = "2018"
 version = "0.1.0"
 authors = [
     "Jacob Fischer <jacob.t.fischer@gmail.com>",
@@ -8,3 +9,4 @@ authors = [
 
 [dependencies]
 clap = "2.33.0"
+termcolor = "1.1"
