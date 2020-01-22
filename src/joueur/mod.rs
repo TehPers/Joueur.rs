@@ -1,23 +1,39 @@
 mod client;
 mod color;
 
+use std::error::Error;
+
 pub struct RunData {
     pub game_name: String,
     pub server: String,
     pub port: String,
+    pub print_io: bool,
+}
+
+fn run_safe(run_data: &RunData) -> Result<(), Box<dyn Error>> {
+    color::cyan("Hello World!")?;
+
+    let combined_address = format!("{}:{}", run_data.server, run_data.port);
+    let address = if run_data.server.contains(":") {
+        &run_data.server
+    } else {
+        &combined_address
+    };
+
+    color::cyan(&format!("Connecting to: {}", address))?;
+
+    let mut client_instance = client::new(run_data.print_io, address)?;
+
+    client_instance.send_raw(&("hello from rust?").as_bytes())?;
+
+    println!("Done?");
+
+    Ok(())
 }
 
 pub fn run(run_data: &RunData) {
-    color::cyan("Hello World!");
-
-
-    let server = &run_data.server;
-    let port = run_data.port.parse().unwrap();
-
-    color::cyan(&format!("Connecting to: {}:{}", server, port));
-
-    let client_instance = client::new();
-    client_instance.connect(server, port);
-
-    println!("Done?");
+    let result = run_safe(run_data);
+    if result.is_err() {
+        println!("Unexpected error running!");
+    }
 }

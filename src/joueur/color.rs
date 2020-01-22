@@ -1,20 +1,22 @@
 extern crate termcolor;
 
+use std::io;
 use std::io::{Write};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
-fn colorize(line: &str, color: Color) {
+fn colorize(line: &str, color: Color) -> io::Result<()> {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
-    let result = Ok(())
-        .and_then(|_| stdout.set_color(ColorSpec::new().set_fg(Some(color))))
-        .and_then(|_| writeln!(&mut stdout, "{}", line))
-        .and_then(|_| stdout.set_color(&(ColorSpec::default())));
+    stdout.set_color(ColorSpec::new().set_fg(Some(color)))?;
+    writeln!(&mut stdout, "{}", line)?;
+    stdout.set_color(&(ColorSpec::default()))?;
 
-    if result.is_err() {
-        println!("ERROR: could not write colored text to stdout");
-    }
+    Ok(())
 }
 
-pub fn cyan(line: &str) {
-    colorize(line, Color::Cyan);
+pub fn cyan(line: &str) -> io::Result<()> {
+    colorize(line, Color::Cyan)
+}
+
+pub fn magenta(line: &str) -> io::Result<()> {
+    colorize(line, Color::Magenta)
 }
