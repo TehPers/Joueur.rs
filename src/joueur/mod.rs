@@ -26,6 +26,10 @@ fn run_safe(run_data: &RunData) -> Result<(), Box<dyn Error>> {
 
     client_instance.send_event_alias(&run_data.game_name)?;
 
+    println!("dangerous looping gonna happen");
+
+    client_instance.print_events()?;
+
     println!("Done?");
 
     Ok(())
