@@ -24,7 +24,7 @@ fn run_safe(run_data: &RunData) -> Result<(), Box<dyn Error>> {
 
     let mut client_instance = client::new(run_data.print_io, address)?;
 
-    client_instance.send_raw(&("hello from rust?").as_bytes())?;
+    client_instance.send_event_alias(&run_data.game_name)?;
 
     println!("Done?");
 
