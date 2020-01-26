@@ -9,6 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde_json::json;
 
 use crate::joueur::color;
+use crate::joueur::errors;
 
 const EOT_CHAR: char = 4 as char;
 const EOT_U8: u8 = 4;
@@ -24,7 +25,14 @@ pub struct Client {
 }
 
 pub fn new(print_io: bool, address: &String) -> io::Result<Client> {
-    let stream = TcpStream::connect(address)?;
+    let connect_result = TcpStream::connect(address);
+
+    match connect_result {
+        Ok(_) => (),
+        Err(e) => errors::handle_error(errors::ErrorCode::CouldNotConnect, &e, &format!("Could not connect to {}", address)),
+    }
+    let stream = connect_result.unwrap();
+
     stream.set_nodelay(true)?;
 
     Ok(Client{

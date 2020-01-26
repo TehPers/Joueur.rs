@@ -1,5 +1,6 @@
 mod client;
 mod color;
+mod errors;
 
 use std::error::Error;
 
@@ -37,6 +38,7 @@ fn run_safe(run_data: &RunData) -> Result<(), Box<dyn Error>> {
 
 pub fn run(run_data: &RunData) {
     let result = run_safe(run_data);
+
     if result.is_err() {
         println!("Unexpected error running!");
     }

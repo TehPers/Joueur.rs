@@ -20,3 +20,7 @@ pub fn cyan(line: &str) -> io::Result<()> {
 pub fn magenta(line: &str) -> io::Result<()> {
     colorize(line, Color::Magenta)
 }
+
+pub fn red(line: &str) -> io::Result<()> {
+    colorize(line, Color::Red)
+}
