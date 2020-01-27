@@ -49,7 +49,7 @@ fn main() {
             .short("p")
             .long("port")
             .help("The port to connect on the server")
-            .default_value("3001")
+            .default_value("3000")
         )
         .arg(Arg::with_name("index")
             .short("i")

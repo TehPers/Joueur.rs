@@ -12,22 +12,30 @@ pub enum ErrorCode {
     // InvalidArgs              = 20,
     CouldNotConnect          = 21,
     // DisconnectedUnexpectedly = 22,
-    // CannotReadSocket         = 23,
+    CannotReadSocket         = 23,
     // DeltaMergeFailure        = 24,
     // ReflectionFailed         = 25,
-    // UnknownEventFromServer   = 26,
+    UnknownEventFromServer   = 26,
     // ServerTimeout            = 27,
-    // FatalEvent               = 28,
+    FatalEvent               = 28,
     // GameNotFound             = 29,
-    // MalformedJSON            = 30,
+    MalformedJSON            = 30,
     // Unauthenticated          = 31,
     // AIErrored                = 42,
 }
 
-pub fn handle_error(error_code: ErrorCode, err: &dyn std::error::Error, message: &String) -> ! {
+pub fn handle_error(
+    error_code: ErrorCode,
+    message: &str,
+    maybe_err: Option<&dyn std::error::Error>,
+) -> ! {
     let _ = color::red(&format!("---\nError: {:?}", error_code));
     let _ = color::red(&format!("---\n{}", message));
-    let _ = color::red(&format!("---\n{}", err.to_string()));
+
+    if maybe_err.is_some() {
+        let err = maybe_err.unwrap();
+        let _ = color::red(&format!("---\n{}", err.to_string()));
+    }
 
     let bt = Backtrace::new();
     let _ = color::red(&format!("---\n{:?}", bt));

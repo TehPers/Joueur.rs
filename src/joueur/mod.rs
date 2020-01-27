@@ -1,3 +1,4 @@
+mod client_events;
 mod client;
 mod color;
 mod errors;
@@ -12,7 +13,7 @@ pub struct RunData {
 }
 
 fn run_safe(run_data: &RunData) -> Result<(), Box<dyn Error>> {
-    color::cyan("Hello World!")?;
+    color::cyan("Hello World!");
 
     let combined_address = format!("{}:{}", run_data.server, run_data.port);
     let address = if run_data.server.contains(":") {
@@ -21,17 +22,14 @@ fn run_safe(run_data: &RunData) -> Result<(), Box<dyn Error>> {
         &combined_address
     };
 
-    color::cyan(&format!("Connecting to: {}", address))?;
+    color::cyan(&format!("Connecting to: {}", address));
 
     let mut client_instance = client::new(run_data.print_io, address)?;
 
-    client_instance.send_event_alias(&run_data.game_name)?;
+    client_instance.send_event_alias(&run_data.game_name);
+    let game_name = client_instance.wait_for_event_named();
 
-    println!("dangerous looping gonna happen");
-
-    client_instance.print_events()?;
-
-    println!("Done?");
+    println!("real game name is: {}", game_name);
 
     Ok(())
 }

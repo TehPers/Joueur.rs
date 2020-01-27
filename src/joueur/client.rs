@@ -8,15 +8,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::json;
 
+use crate::joueur::client_events;
 use crate::joueur::color;
 use crate::joueur::errors;
 
 const EOT_CHAR: char = 4 as char;
 const EOT_U8: u8 = 4;
 const BUFFER_SIZE: usize = 1024;
-
-#[derive(Debug, Clone)]
-struct SendEventError;
 
 pub struct Client {
     print_io: bool,
@@ -27,9 +25,12 @@ pub struct Client {
 pub fn new(print_io: bool, address: &String) -> io::Result<Client> {
     let connect_result = TcpStream::connect(address);
 
-    match connect_result {
-        Ok(_) => (),
-        Err(e) => errors::handle_error(errors::ErrorCode::CouldNotConnect, &e, &format!("Could not connect to {}", address)),
+    if connect_result.is_err() {
+        errors::handle_error(
+            errors::ErrorCode::CouldNotConnect,
+            &format!("Could not connect to {}", address),
+            Some(&connect_result.unwrap_err()),
+        );
     }
     let stream = connect_result.unwrap();
 
@@ -43,14 +44,14 @@ pub fn new(print_io: bool, address: &String) -> io::Result<Client> {
 }
 
 impl Client {
-    pub fn send_event_alias(&mut self, game_name: &String) -> serde_json::Result<()> {
-        self.send_event("alias", json!(game_name))
+    pub fn send_event_alias(&mut self, game_name: &str) {
+        self.send_event("alias", json!(game_name));
     }
 
-    pub fn send_event(&mut self, event_name: &str, data: serde_json::Value) -> serde_json::Result<()> {
+    pub fn send_event(&mut self, event_name: &str, data: serde_json::Value) {
         let now = SystemTime::now().duration_since(UNIX_EPOCH);
         let serde_payload = json!({
-            "name": event_name,
+            "event": event_name,
             "data": data,
             "sentTime": i64::try_from(now.unwrap_or_default().as_millis()).unwrap_or_default(), // TODO: ugly
         });
@@ -60,57 +61,126 @@ impl Client {
 
         // TODO: handle both error types
         let _ = self.send_raw(s.as_bytes());
-
-        Ok(())
     }
 
     pub fn send_raw(&mut self, bytes: &[u8]) -> io::Result<()> {
         if self.print_io {
-            let stringified = str::from_utf8(&bytes).unwrap_or("UTF8 error");
-            color::magenta("TO SERVER -->")?;
-            color::magenta(stringified)?;
+            color::magenta(&format!("TO SERVER --> {}", str::from_utf8(&bytes).unwrap_or("UTF8 error")));
         }
 
         self.stream.write_all(bytes)
     }
 
-    pub fn wait_for_events(&mut self) -> io::Result<()> {
+    // -- Server Events -- \\
+
+    pub fn wait_for_event_named(&mut self) -> String {
+        let json = self.wait_for_event("named");
+        let named_result = serde_json::from_value::<String>(json);
+        if named_result.is_err() {
+            errors::handle_error(
+                errors::ErrorCode::MalformedJSON,
+                &"Could not transform named event data to a String".to_string(),
+                Some(&named_result.unwrap_err()),
+            );
+        }
+        return named_result.unwrap();
+    }
+
+    pub fn wait_for_events(&mut self) {
         if self.bytes_buffer.contains(&EOT_U8) {
             // already at least 1 event
-            return Ok(());
+            return;
         }
 
         loop {
             let mut buf = vec![0; BUFFER_SIZE];
-            let chars_read = self.stream.read(&mut buf)?;
+            let read_result = self.stream.read(&mut buf);
 
-            if chars_read == 0 {
+            if read_result.is_err() {
+                errors::handle_error(
+                    errors::ErrorCode::CannotReadSocket,
+                    "Cannot read socket while waiting for events",
+                    Some(&read_result.unwrap_err()),
+                )
+            }
+
+            let bytes_read = read_result.unwrap();
+            if bytes_read == 0 {
                 continue; // keep trying to read, probably want to add a timeout?
             }
 
             if self.print_io {
-                color::magenta("FROM SERVER <--")?;
-                let str_result = str::from_utf8(&buf);
-                color::magenta(str_result.unwrap_or_default())?;
+                color::magenta(&format!("FROM SERVER <-- {}", str::from_utf8(&buf).unwrap_or_default()));
             }
 
+            let done = buf.contains(&EOT_U8); // buf will be drained, so check now
             self.bytes_buffer.append(&mut buf);
 
-            if buf.contains(&EOT_U8) {
+            if done {
                 break;
             }
         }
-        Ok(())
     }
 
-    pub fn print_events(&mut self) -> io::Result<()> {
-        self.wait_for_events()?;
+    pub fn wait_for_event(&mut self, event_name: &str) -> serde_json::Value {
+        loop {
+            self.wait_for_events();
+            // once that returns there should be events in the buffer to parse
+            let split = self.bytes_buffer.split(|&c| c == EOT_U8);
+            for event_bytes in split {
+                let de_serialized_result = serde_json::from_slice::<client_events::SentEvent>(&event_bytes);
 
-        let split = self.bytes_buffer.split(|char_byte| char_byte == &EOT_U8);
-        for event_bytes in split {
-            println!("got: {}", event_bytes[1].to_string())
+                if de_serialized_result.is_err() {
+                    errors::handle_error(
+                        errors::ErrorCode::MalformedJSON,
+                        &format!(
+                            "Could not parse data while waiting for event: '{}'\ndata: {}",
+                            event_name,
+                            str::from_utf8(&event_bytes).unwrap_or("event bytes not valid string")
+                        ),
+                        Some(&de_serialized_result.unwrap_err()),
+                    );
+                }
+
+                let sent = de_serialized_result.unwrap();
+                if sent.event == event_name {
+                    return sent.data;
+                }
+                else {
+                    self.auto_handle_event(&sent);
+                }
+            }
         }
+    }
 
-        Ok(())
+    fn auto_handle_event(&self, sent_event: &client_events::SentEvent) {
+        let event_name: &str = &sent_event.event;
+        match event_name {
+            // TODO: add more auto handlers here
+            "fatal" => self.auto_handle_event_fatal(&sent_event.data),
+            _ => errors::handle_error(
+                errors::ErrorCode::UnknownEventFromServer,
+                &format!(
+                    "Could not auto handle event from server: '{}'",
+                    sent_event.event,
+                ),
+                None,
+            ),
+        }
+    }
+
+    fn auto_handle_event_fatal(&self, data: &serde_json::Value) -> ! {
+        let fatal_data_result = serde_json::from_value::<client_events::SentEventFatalData>(data.to_owned());
+        let fatal_message = if fatal_data_result.is_ok() {
+            fatal_data_result.unwrap().message
+        } else {
+            format!("Could not parse fatal event from server {}", data.to_string())
+        };
+
+        errors::handle_error(
+            errors::ErrorCode::FatalEvent,
+            &fatal_message,
+            None,
+        )
     }
 }
