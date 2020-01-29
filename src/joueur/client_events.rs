@@ -5,13 +5,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientEventPlayData {
-    client_type: String,
-    game_name: String,
-    game_settings: String,
-    password: String,
-    player_index: i32,
-    player_name: String,
-    requested_session: String,
+    pub client_type: String,
+    pub game_name: String,
+    pub game_settings: String,
+    pub password: String,
+    pub player_index: i32,
+    pub player_name: String,
+    pub requested_session: String,
 }
 
 //-- Server Events -- \\

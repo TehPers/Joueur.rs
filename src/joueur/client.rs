@@ -72,11 +72,9 @@ impl Client {
         self.send_event("alias", json!(game_name));
     }
 
-    /*
     pub fn send_event_play(&mut self, play_data: &client_events::ClientEventPlayData) {
         self.send_event("play", json!(play_data))
     }
-    */
 
     // -- Server Events -- \\
 

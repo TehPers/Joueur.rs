@@ -57,6 +57,7 @@ fn main() {
             .short("i")
             .long("index")
             .help("The player number you want to be, with 0 being the first player")
+            .default_value("-1")
             .takes_value(true)
         )
         .arg(Arg::with_name("printIO")
@@ -72,6 +73,10 @@ fn main() {
         server: matches.value_of("server").unwrap_or_default().to_string(),
         port: matches.value_of("port").unwrap_or_default().to_string(),
         print_io: matches.occurrences_of("printIO") == 1,
+        game_settings: matches.value_of("game_settings").unwrap_or_default().to_string(),
+        password: matches.value_of("password").unwrap_or_default().to_string(),
+        player_index: matches.value_of("player_index").unwrap_or_default().to_string(),
+        requested_session: matches.value_of("requested_session").unwrap_or_default().to_string(),
     };
 
     // games::initialize_games();
