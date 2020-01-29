@@ -8,4 +8,5 @@ core:
 	cargo build
 
 clean:
+	cargo clean
 	rm -rf target

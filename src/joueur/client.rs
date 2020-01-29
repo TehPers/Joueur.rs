@@ -44,10 +44,6 @@ pub fn new(print_io: bool, address: &String) -> io::Result<Client> {
 }
 
 impl Client {
-    pub fn send_event_alias(&mut self, game_name: &str) {
-        self.send_event("alias", json!(game_name));
-    }
-
     pub fn send_event(&mut self, event_name: &str, data: serde_json::Value) {
         let now = SystemTime::now().duration_since(UNIX_EPOCH);
         let serde_payload = json!({
@@ -70,6 +66,17 @@ impl Client {
 
         self.stream.write_all(bytes)
     }
+
+    // -- Client Events -- \\
+    pub fn send_event_alias(&mut self, game_name: &str) {
+        self.send_event("alias", json!(game_name));
+    }
+
+    /*
+    pub fn send_event_play(&mut self, play_data: &client_events::ClientEventPlayData) {
+        self.send_event("play", json!(play_data))
+    }
+    */
 
     // -- Server Events -- \\
 
@@ -128,7 +135,7 @@ impl Client {
             // once that returns there should be events in the buffer to parse
             let split = self.bytes_buffer.split(|&c| c == EOT_U8);
             for event_bytes in split {
-                let de_serialized_result = serde_json::from_slice::<client_events::SentEvent>(&event_bytes);
+                let de_serialized_result = serde_json::from_slice::<client_events::ServerEvent>(&event_bytes);
 
                 if de_serialized_result.is_err() {
                     errors::handle_error(
@@ -153,7 +160,7 @@ impl Client {
         }
     }
 
-    fn auto_handle_event(&self, sent_event: &client_events::SentEvent) {
+    fn auto_handle_event(&self, sent_event: &client_events::ServerEvent) {
         let event_name: &str = &sent_event.event;
         match event_name {
             // TODO: add more auto handlers here
@@ -170,7 +177,7 @@ impl Client {
     }
 
     fn auto_handle_event_fatal(&self, data: &serde_json::Value) -> ! {
-        let fatal_data_result = serde_json::from_value::<client_events::SentEventFatalData>(data.to_owned());
+        let fatal_data_result = serde_json::from_value::<client_events::ServerEventFatalData>(data.to_owned());
         let fatal_message = if fatal_data_result.is_ok() {
             fatal_data_result.unwrap().message
         } else {

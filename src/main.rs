@@ -2,6 +2,8 @@
 extern crate clap;
 use clap::{App, Arg};
 
+mod base;
+mod games;
 mod joueur;
 
 fn main() {
@@ -72,5 +74,6 @@ fn main() {
         print_io: matches.occurrences_of("printIO") == 1,
     };
 
+    // games::initialize_games();
     joueur::run(&run_data);
 }

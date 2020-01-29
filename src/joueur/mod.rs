@@ -4,6 +4,7 @@ mod color;
 mod errors;
 
 use std::error::Error;
+use crate::games;
 
 pub struct RunData {
     pub game_name: String,
@@ -30,6 +31,14 @@ fn run_safe(run_data: &RunData) -> Result<(), Box<dyn Error>> {
     let game_name = client_instance.wait_for_event_named();
 
     println!("real game name is: {}", game_name);
+
+    // TODO: check if we have that game?
+    let game_namespace = games::get_game(&game_name);
+
+    match game_namespace {
+        None => println!("no game for {}", game_name),
+        Some(_) => println!("yay {}", game_name),
+    }
 
     Ok(())
 }
