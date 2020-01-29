@@ -14,6 +14,7 @@ pub struct RunData {
     pub game_settings: String,
     pub password: String,
     pub player_index: String,
+    pub player_name: String,
     pub requested_session: String,
 }
 
@@ -48,13 +49,20 @@ fn run_safe(run_data: &RunData) -> Result<(), Box<dyn Error>> {
 
     let manager = game_manager::new(&game_name);
 
+    let default_player_name = "Rust Player";
+    let player_name = (match true {
+        _ if run_data.player_name != "" => &run_data.player_name,
+        _ if manager.game_namespace.player_name != "" => &manager.game_namespace.player_name,
+        _ => default_player_name,
+    }).to_string();
+
     client_instance.send_event_play(&client_events::ClientEventPlayData{
         client_type: "rust".to_string(),
         game_name: game_name,
         game_settings: run_data.game_settings.to_string(),
         password: run_data.password.to_string(),
         player_index: player_index,
-        player_name: manager.game_namespace.player_name,
+        player_name: player_name,
         requested_session: run_data.requested_session.to_string(),
     });
 
