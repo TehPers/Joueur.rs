@@ -1,3 +1,4 @@
+use std::collections;
 use std::convert::TryFrom;
 use std::io;
 use std::io::Read;
@@ -20,7 +21,7 @@ pub struct Client {
     print_io: bool,
     stream: TcpStream,
     bytes_buffer: Vec<u8>,
-    events: Vec<Vec<u8>>, // VecDeque is conceptually more appropriate, but Rust doc's reccomend using Vec
+    events: collections::VecDeque<Vec<u8>>,
 }
 
 pub fn new(print_io: bool, address: &String) -> io::Result<Client> {
@@ -41,7 +42,7 @@ pub fn new(print_io: bool, address: &String) -> io::Result<Client> {
         print_io: print_io,
         stream: stream,
         bytes_buffer: Vec::new(),
-        events: Vec::new(),
+        events: collections::VecDeque::new(),
     })
 }
 
@@ -135,7 +136,7 @@ impl Client {
             }
 
             for event in events {
-                self.events.push(event.to_vec());
+                self.events.push_back(event.to_vec());
             }
         }
     }
@@ -146,11 +147,7 @@ impl Client {
         loop {
             self.wait_for_events();
             // once that returns there should be events in the buffer to parse
-
-            let mut events_stack = self.events.clone();
-            self.events.truncate(0); // empty out
-            events_stack.reverse();
-            while let Some(event) = events_stack.pop() {
+            while let Some(event) = self.events.pop_front() {
                 let de_serialized_result = serde_json::from_slice::<client_events::ServerEvent>(&event);
 
                 if de_serialized_result.is_err() {
@@ -175,13 +172,6 @@ impl Client {
                             Some(&de_result.unwrap_err()),
                         );
                     }
-
-                    // before we return, there may be more events we would iterate through
-                    // so add them back to the client events to parse in the future
-                    while let Some(unhandled_event) = events_stack.pop() {
-                        self.events.push(unhandled_event);
-                    }
-
                     return de_result.unwrap();
                 }
                 else {

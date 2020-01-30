@@ -45,8 +45,6 @@ fn run_safe(run_data: &RunData) -> Result<(), Box<dyn Error>> {
     client_instance.send_event_alias(&run_data.game_name);
     let game_name = client_instance.wait_for_event_named();
 
-    println!("real game name is: {}", game_name);
-
     let manager = game_manager::new(&game_name);
 
     let default_player_name = "Rust Player";
