@@ -68,7 +68,7 @@ fn main() {
         )
         .get_matches();
 
-    let run_data = joueur::RunData{
+    let run_data = joueur::run::RunData{
         game_name: matches.value_of("game").unwrap_or_default().to_string(),
         server: matches.value_of("server").unwrap_or_default().to_string(),
         port: matches.value_of("port").unwrap_or_default().to_string(),
@@ -81,5 +81,5 @@ fn main() {
     };
 
     // games::initialize_games();
-    joueur::run(&run_data);
+    joueur::run::run(&run_data);
 }

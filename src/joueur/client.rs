@@ -24,8 +24,15 @@ pub struct Client {
     events: collections::VecDeque<Vec<u8>>,
 }
 
-pub fn new(print_io: bool, address: &String) -> io::Result<Client> {
-    let connect_result = TcpStream::connect(address);
+fn connect(address: &str) -> io::Result<TcpStream> {
+    let stream = TcpStream::connect(address)?;
+    stream.set_nodelay(true)?;
+
+    Ok(stream)
+}
+
+pub fn new(print_io: bool, address: &String) -> Client {
+    let connect_result = connect(address);
 
     if connect_result.is_err() {
         errors::handle_error(
@@ -36,14 +43,12 @@ pub fn new(print_io: bool, address: &String) -> io::Result<Client> {
     }
     let stream = connect_result.unwrap();
 
-    stream.set_nodelay(true)?;
-
-    Ok(Client{
+    Client{
         print_io: print_io,
         stream: stream,
         bytes_buffer: Vec::new(),
         events: collections::VecDeque::new(),
-    })
+    }
 }
 
 impl Client {
