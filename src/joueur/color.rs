@@ -31,3 +31,7 @@ pub fn magenta(line: &str) {
 pub fn red(line: &str) {
     colorize(line, Color::Red);
 }
+
+pub fn yellow(line: &str) {
+    colorize(line, Color::Yellow);
+}

@@ -44,3 +44,9 @@ pub struct ServerEventLobbiedData {
     pub game_version: String,
     pub constants: ServerConstants,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct ServerEventStartData {
+    #[serde(alias = "playerID")] // camelCase would be "playerId"
+    pub player_id: String,
+}

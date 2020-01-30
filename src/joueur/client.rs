@@ -94,6 +94,10 @@ impl Client {
         return self.wait_for_event::<client_events::ServerEventLobbiedData>("lobbied");
     }
 
+    pub fn wait_for_event_start(&mut self) -> client_events::ServerEventStartData {
+        return self.wait_for_event::<client_events::ServerEventStartData>("start");
+    }
+
     pub fn wait_for_events(&mut self) {
         while self.events.len() == 0 {
             let mut buf = vec![0; BUFFER_SIZE];
@@ -191,6 +195,7 @@ impl Client {
         match event_name {
             // TODO: add more auto handlers here
             "fatal" => self.auto_handle_event_fatal(&sent_event.data),
+            "delta" => self.auto_handle_event_delta(&sent_event.data),
             _ => errors::handle_error(
                 errors::ErrorCode::UnknownEventFromServer,
                 &format!(
@@ -215,5 +220,9 @@ impl Client {
             &fatal_message,
             None,
         )
+    }
+
+    fn auto_handle_event_delta(&self, data: &serde_json::Value) {
+        println!("TODO: auto handle this delta {:?}", data);
     }
 }

@@ -43,11 +43,11 @@ pub fn run(run_data: &RunData) {
     client_instance.send_event_alias(&run_data.game_name);
     let game_name = client_instance.wait_for_event_named();
 
-    let manager = game_manager::new(&game_name);
+    let game_manager_instance = game_manager::new(&game_name);
 
     let player_name =
         if run_data.player_name != "" { &run_data.player_name }
-        else if manager.game_namespace.player_name != "" { &manager.game_namespace.player_name }
+        else if game_manager_instance.game_namespace.player_name != "" { &game_manager_instance.game_namespace.player_name }
         else { "Rust Player" };
 
     client_instance.send_event_play(&client_events::ClientEventPlayData{
@@ -62,6 +62,22 @@ pub fn run(run_data: &RunData) {
 
     let lobbied_data = client_instance.wait_for_event_lobbied();
     color::cyan(&format!("In lobby for game {} in session {}", &lobbied_data.game_name, &lobbied_data.game_session));
+
+    let our_game_version = game_manager_instance.game_namespace.game_version;
+    if lobbied_data.game_version != our_game_version {
+        color::yellow(&format!(
+            "WARNING: Game versions do not match.
+-> Your local game version is:     {}
+-> Game Server's game version is:  {}
+
+Version mismatch means that unexpected crashes may happen due to differing game structures",
+            &our_game_version[..8],
+            &lobbied_data.game_version[..8],
+        ));
+    }
+
+    let start_data = client_instance.wait_for_event_start();
+    println!("game is starting, we are player id: {:?}", start_data.player_id);
 
     println!("Done?")
 }
