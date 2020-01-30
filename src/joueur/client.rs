@@ -20,6 +20,7 @@ pub struct Client {
     print_io: bool,
     stream: TcpStream,
     bytes_buffer: Vec<u8>,
+    events: Vec<Vec<u8>>, // VecDeque is conceptually more appropriate, but Rust doc's reccomend using Vec
 }
 
 pub fn new(print_io: bool, address: &String) -> io::Result<Client> {
@@ -39,7 +40,8 @@ pub fn new(print_io: bool, address: &String) -> io::Result<Client> {
     Ok(Client{
         print_io: print_io,
         stream: stream,
-        bytes_buffer: Vec::new()
+        bytes_buffer: Vec::new(),
+        events: Vec::new(),
     })
 }
 
@@ -87,12 +89,7 @@ impl Client {
     }
 
     pub fn wait_for_events(&mut self) {
-        if self.bytes_buffer.contains(&EOT_U8) {
-            // already at least 1 event
-            return;
-        }
-
-        loop {
+        while self.events.len() == 0 {
             let mut buf = vec![0; BUFFER_SIZE];
             let read_result = self.stream.read(&mut buf);
 
@@ -113,39 +110,42 @@ impl Client {
                 color::magenta(&format!("FROM SERVER <-- {}", str::from_utf8(&buf).unwrap_or_default()));
             }
 
-            let done = buf.contains(&EOT_U8); // buf will be drained, so check now
-            self.bytes_buffer.append(&mut buf);
+            let mut all_bytes = self.bytes_buffer.clone();
+            all_bytes.append(&mut buf);
+            let mut events = all_bytes
+                .split(|&c| c == EOT_U8)
+                .into_iter()
+                .collect::<Vec<&[u8]>>();
+            let last_result = events.pop();
+            if last_result.is_none() {
+                errors::handle_error(
+                    errors::ErrorCode::MalformedJSON,
+                    "read buffer had elements but could not be split?",
+                    None,
+                )
+            }
+            let last = last_result.unwrap();
+            self.bytes_buffer.truncate(0);
+            self.bytes_buffer.append(&mut last.to_vec());
 
-            if done {
-                break;
+            for event in events {
+                self.events.push(event.to_vec());
             }
         }
     }
 
-    pub fn wait_for_event<T>(&mut self, event_name: &str) -> T
-    where T: serde::de::DeserializeOwned + std::fmt::Debug,
+    pub fn wait_for_event<T>(&mut self, event_name: &str)
+        -> T where T: serde::de::DeserializeOwned + std::fmt::Debug,
     {
         loop {
             self.wait_for_events();
             // once that returns there should be events in the buffer to parse
-            let mut split = self.bytes_buffer
-                .split(|&c| c == EOT_U8)
-                .into_iter()
-                .collect::<Vec<&[u8]>>();
 
-            let last_result = split.pop();
-            if last_result.is_none() {
-                errors::handle_error(
-                    errors::ErrorCode::MalformedJSON,
-                    "Unexpected empty events JSON buffer!",
-                    None,
-                )
-            }
-            // TODO: fix
-            // let last = last_result.unwrap();
-
-            for event_bytes in split {
-                let de_serialized_result = serde_json::from_slice::<client_events::ServerEvent>(event_bytes);
+            let mut events_stack = self.events.clone();
+            self.events.truncate(0); // empty out
+            let mut events_stack_iter = events_stack.iter();
+            while let Some(event) = events_stack_iter.next() {
+                let de_serialized_result = serde_json::from_slice::<client_events::ServerEvent>(event);
 
                 if de_serialized_result.is_err() {
                     errors::handle_error(
@@ -153,7 +153,7 @@ impl Client {
                         &format!(
                             "Could not parse data while waiting for event: '{}'\ndata: {}",
                             event_name,
-                            str::from_utf8(&event_bytes).unwrap_or("event bytes not valid string")
+                            str::from_utf8(&event).unwrap_or("event bytes not valid string")
                         ),
                         Some(&de_serialized_result.unwrap_err()),
                     );
@@ -168,6 +168,12 @@ impl Client {
                             &format!("Could not transform {} event data to a String", event_name),
                             Some(&de_result.unwrap_err()),
                         );
+                    }
+
+                    // before we return, there may be more events we would iterate through
+                    // so add them back to the client events to parse in the future
+                    while let Some(unhandled_event) = events_stack_iter.next() {
+                        self.events.push(unhandled_event);
                     }
 
                     return de_result.unwrap();
