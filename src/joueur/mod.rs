@@ -66,6 +66,9 @@ fn run_safe(run_data: &RunData) -> Result<(), Box<dyn Error>> {
         requested_session: run_data.requested_session.to_string(),
     });
 
+    let lobbied_data = client_instance.wait_for_event_lobbied();
+	color::cyan(&format!("In lobby for game {} in session {}", &lobbied_data.game_name, &lobbied_data.game_session));
+
     Ok(())
 }
 

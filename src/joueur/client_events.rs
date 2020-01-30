@@ -28,3 +28,10 @@ pub struct ServerEventFatalData {
     pub message: String,
     pub timed_out: bool,
 }
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerEventLobbiedData {
+    pub game_name: String,
+    pub game_session: String,
+}

@@ -79,16 +79,11 @@ impl Client {
     // -- Server Events -- \\
 
     pub fn wait_for_event_named(&mut self) -> String {
-        let json = self.wait_for_event("named");
-        let named_result = serde_json::from_value::<String>(json);
-        if named_result.is_err() {
-            errors::handle_error(
-                errors::ErrorCode::MalformedJSON,
-                &"Could not transform named event data to a String".to_string(),
-                Some(&named_result.unwrap_err()),
-            );
-        }
-        return named_result.unwrap();
+        return self.wait_for_event::<String>("named");
+    }
+
+    pub fn wait_for_event_lobbied(&mut self) -> client_events::ServerEventLobbiedData {
+        return self.wait_for_event::<client_events::ServerEventLobbiedData>("lobbied");
     }
 
     pub fn wait_for_events(&mut self) {
@@ -127,13 +122,30 @@ impl Client {
         }
     }
 
-    pub fn wait_for_event(&mut self, event_name: &str) -> serde_json::Value {
+    pub fn wait_for_event<T>(&mut self, event_name: &str) -> T
+    where T: serde::de::DeserializeOwned + std::fmt::Debug,
+    {
         loop {
             self.wait_for_events();
             // once that returns there should be events in the buffer to parse
-            let split = self.bytes_buffer.split(|&c| c == EOT_U8);
+            let mut split = self.bytes_buffer
+                .split(|&c| c == EOT_U8)
+                .into_iter()
+                .collect::<Vec<&[u8]>>();
+
+            let last_result = split.pop();
+            if last_result.is_none() {
+                errors::handle_error(
+                    errors::ErrorCode::MalformedJSON,
+                    "Unexpected empty events JSON buffer!",
+                    None,
+                )
+            }
+            // TODO: fix
+            // let last = last_result.unwrap();
+
             for event_bytes in split {
-                let de_serialized_result = serde_json::from_slice::<client_events::ServerEvent>(&event_bytes);
+                let de_serialized_result = serde_json::from_slice::<client_events::ServerEvent>(event_bytes);
 
                 if de_serialized_result.is_err() {
                     errors::handle_error(
@@ -149,7 +161,16 @@ impl Client {
 
                 let sent = de_serialized_result.unwrap();
                 if sent.event == event_name {
-                    return sent.data;
+                    let de_result = serde_json::from_value::<T>(sent.data);
+                    if de_result.is_err() {
+                        errors::handle_error(
+                            errors::ErrorCode::MalformedJSON,
+                            &format!("Could not transform {} event data to a String", event_name),
+                            Some(&de_result.unwrap_err()),
+                        );
+                    }
+
+                    return de_result.unwrap();
                 }
                 else {
                     self.auto_handle_event(&sent);
