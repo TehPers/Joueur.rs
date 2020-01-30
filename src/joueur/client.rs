@@ -110,13 +110,17 @@ impl Client {
                 color::magenta(&format!("FROM SERVER <-- {}", str::from_utf8(&buf).unwrap_or_default()));
             }
 
+            buf.truncate(bytes_read); // chop off unread bytes
             let mut all_bytes = self.bytes_buffer.clone();
             all_bytes.append(&mut buf);
+            self.bytes_buffer.truncate(0); // and flush it
+
             let mut events = all_bytes
                 .split(|&c| c == EOT_U8)
                 .into_iter()
                 .collect::<Vec<&[u8]>>();
             let last_result = events.pop();
+
             if last_result.is_none() {
                 errors::handle_error(
                     errors::ErrorCode::MalformedJSON,
@@ -125,8 +129,10 @@ impl Client {
                 )
             }
             let last = last_result.unwrap();
-            self.bytes_buffer.truncate(0);
-            self.bytes_buffer.append(&mut last.to_vec());
+            if last.len() > 0 {
+                // a partial json structure is present, so buffer it
+                self.bytes_buffer.append(&mut last.to_vec());
+            }
 
             for event in events {
                 self.events.push(event.to_vec());
@@ -143,15 +149,15 @@ impl Client {
 
             let mut events_stack = self.events.clone();
             self.events.truncate(0); // empty out
-            let mut events_stack_iter = events_stack.iter();
-            while let Some(event) = events_stack_iter.next() {
-                let de_serialized_result = serde_json::from_slice::<client_events::ServerEvent>(event);
+            events_stack.reverse();
+            while let Some(event) = events_stack.pop() {
+                let de_serialized_result = serde_json::from_slice::<client_events::ServerEvent>(&event);
 
                 if de_serialized_result.is_err() {
                     errors::handle_error(
                         errors::ErrorCode::MalformedJSON,
                         &format!(
-                            "Could not parse data while waiting for event: '{}'\ndata: {}",
+                            "Could not parse data while waiting for event: '{:?}'.\nData: {:?}",
                             event_name,
                             str::from_utf8(&event).unwrap_or("event bytes not valid string")
                         ),
@@ -172,7 +178,7 @@ impl Client {
 
                     // before we return, there may be more events we would iterate through
                     // so add them back to the client events to parse in the future
-                    while let Some(unhandled_event) = events_stack_iter.next() {
+                    while let Some(unhandled_event) = events_stack.pop() {
                         self.events.push(unhandled_event);
                     }
 

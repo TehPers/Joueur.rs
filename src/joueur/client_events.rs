@@ -30,8 +30,17 @@ pub struct ServerEventFatalData {
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub struct ServerConstants {
+    pub delta_removed: String,
+    pub delta_list_length: String,
+}
+
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerEventLobbiedData {
     pub game_name: String,
     pub game_session: String,
+    pub game_version: String,
+    pub constants: ServerConstants,
 }
