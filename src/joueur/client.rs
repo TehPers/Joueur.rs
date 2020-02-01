@@ -31,27 +31,27 @@ fn connect(address: &str) -> io::Result<TcpStream> {
     Ok(stream)
 }
 
-pub fn new(print_io: bool, address: &String) -> Client {
-    let connect_result = connect(address);
-
-    if connect_result.is_err() {
-        errors::handle_error(
-            errors::ErrorCode::CouldNotConnect,
-            &format!("Could not connect to {}", address),
-            Some(&connect_result.unwrap_err()),
-        );
-    }
-    let stream = connect_result.unwrap();
-
-    Client{
-        print_io: print_io,
-        stream: stream,
-        bytes_buffer: Vec::new(),
-        events: collections::VecDeque::new(),
-    }
-}
-
 impl Client {
+    pub fn new(print_io: bool, address: &String) -> Client {
+        let connect_result = connect(address);
+
+        if connect_result.is_err() {
+            errors::handle_error(
+                errors::ErrorCode::CouldNotConnect,
+                &format!("Could not connect to {}", address),
+                Some(&connect_result.unwrap_err()),
+            );
+        }
+        let stream = connect_result.unwrap();
+
+        Client{
+            print_io: print_io,
+            stream: stream,
+            bytes_buffer: Vec::new(),
+            events: collections::VecDeque::new(),
+        }
+    }
+
     pub fn send_event(&mut self, event_name: &str, data: serde_json::Value) {
         let now = SystemTime::now().duration_since(UNIX_EPOCH);
         let serde_payload = json!({

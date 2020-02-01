@@ -7,6 +7,12 @@ pub struct GameImpl {
 }
 
 impl GameImpl {
+    pub fn new() -> GameImpl {
+        GameImpl{
+            game_objects: std::collections::HashMap::new(),
+        }
+    }
+
     pub fn get_game_object(&self, id: &str) -> Option<&str> {
         let got = self.game_objects.get(id);
         if got.is_some() {
@@ -17,10 +23,4 @@ impl GameImpl {
             return None;
         }
     }
-}
-
-pub fn new() -> GameImpl {
-    return GameImpl{
-        game_objects: std::collections::HashMap::new(),
-    };
 }

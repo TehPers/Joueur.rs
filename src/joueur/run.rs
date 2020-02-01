@@ -1,8 +1,8 @@
 use crate::joueur::color;
-use crate::joueur::client;
+use crate::joueur::client::{Client};
 use crate::joueur::client_events;
 use crate::joueur::errors;
-use crate::joueur::game_manager;
+use crate::joueur::game_manager::{GameManager};
 
 pub struct RunData {
     pub game_name: String,
@@ -38,19 +38,19 @@ pub fn run(run_data: &RunData) {
 
     color::cyan(&format!("Connecting to: {}", address));
 
-    let mut client_instance = client::new(run_data.print_io, address);
+    let mut client = Client::new(run_data.print_io, address);
 
-    client_instance.send_event_alias(&run_data.game_name);
-    let game_name = client_instance.wait_for_event_named();
+    client.send_event_alias(&run_data.game_name);
+    let game_name = client.wait_for_event_named();
 
-    let game_manager_instance = game_manager::new(&game_name);
+    let game_manager = GameManager::new(&game_name);
 
     let player_name =
         if run_data.player_name != "" { &run_data.player_name }
-        else if game_manager_instance.game_namespace.player_name != "" { &game_manager_instance.game_namespace.player_name }
+        else if game_manager.game_namespace.player_name != "" { &game_manager.game_namespace.player_name }
         else { "Rust Player" };
 
-    client_instance.send_event_play(&client_events::ClientEventPlayData{
+    client.send_event_play(&client_events::ClientEventPlayData{
         client_type: "rust".to_string(),
         game_name: game_name,
         game_settings: run_data.game_settings.to_string(),
@@ -60,10 +60,10 @@ pub fn run(run_data: &RunData) {
         requested_session: run_data.requested_session.to_string(),
     });
 
-    let lobbied_data = client_instance.wait_for_event_lobbied();
+    let lobbied_data = client.wait_for_event_lobbied();
     color::cyan(&format!("In lobby for game {} in session {}", &lobbied_data.game_name, &lobbied_data.game_session));
 
-    let our_game_version = game_manager_instance.game_namespace.game_version;
+    let our_game_version = game_manager.game_namespace.game_version;
     if lobbied_data.game_version != our_game_version {
         color::yellow(&format!(
             "WARNING: Game versions do not match.
@@ -76,7 +76,7 @@ Version mismatch means that unexpected crashes may happen due to differing game 
         ));
     }
 
-    let start_data = client_instance.wait_for_event_start();
+    let start_data = client.wait_for_event_start();
     println!("game is starting, we are player id: {:?}", start_data.player_id);
 
     println!("Done?")
