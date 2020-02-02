@@ -1,0 +1,50 @@
+<%
+if not 'rs' in shared:
+    shared['rs'] = {}
+
+    def rs_type(type_obj):
+        base_type = type_obj['name']
+
+        if base_type == 'dictionary':
+            return '&std::collections::HashMap<{}, {}>'.format(
+                rs_type(type_obj['keyType']),
+                rs_type(type_obj['valueType'])
+            )
+        elif base_type == 'list':
+            return '&[{}]'.format(rs_type(type_obj['valueType']))
+        elif base_type == 'int':
+            return '&i32'
+        elif  base_type == 'float':
+            return '&f64'
+        elif base_type == 'boolean':
+            return '&bool'
+        elif base_type == 'string':
+            return '&str'
+        elif type_obj['is_game_object']:
+            game_obj = '&dyn ' + base_type
+            if type_obj['nullable']:
+                return 'Optional<{}>'.format(game_obj)
+            return game_obj
+    shared['rs']['type'] = rs_type
+
+    def rs_imports(obj):
+        importing = set()
+        def add(type_obj):
+            print("-----> ADD")
+            type_name = type_obj['name']
+            if type_name == 'dictionary' or type_name == 'list':
+                add(type_obj['valueType'])
+            elif type_obj['is_game_object']:
+                importing.add(type_name)
+
+        if 'attributes' in obj:
+            for attr_name in obj['attribute_names']:
+                print("-----> OMG", attr_name)
+                add(obj['attributes'][attr_name]['type'])
+
+        importing = sorted(importing)
+        if not importing:
+            return ''
+        return 'use crate::games::{}::{{\n{}\n}}'.format(underscore(game_name), '\n'.join(['    {},'.format(i) for i in importing]))
+    shared['rs']['imports'] = rs_imports
+%>
