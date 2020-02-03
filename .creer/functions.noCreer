@@ -27,8 +27,8 @@ if not 'rs' in shared:
             return game_obj
     shared['rs']['type'] = rs_type
 
-    def rs_imports(obj):
-        importing = set()
+    def rs_imports(obj, already_importing):
+        importing = set(already_importing or [])
         def add(type_obj):
             print("-----> ADD")
             type_name = type_obj['name']
@@ -47,4 +47,12 @@ if not 'rs' in shared:
             return ''
         return 'use crate::games::{}::{{\n{}\n}}'.format(underscore(game_name), '\n'.join(['    {},'.format(i) for i in importing]))
     shared['rs']['imports'] = rs_imports
+
+    def rs_function_top(func):
+        top = ['/// ', func['description'], '\n    fn ', underscore(func['name']),'(']
+        args = ["&self"]
+        if func['arguments']:
+            for i, arg in enumerate(func['arguments']):
+                args.extend(underscore(arg['name']), ': ', rs_type(arg['type']))
+        one_line_args = 
 %>

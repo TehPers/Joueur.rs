@@ -1,9 +1,9 @@
-use crate::base::namespace::BaseNamespace;
+use crate::base::{Namespace};
 use crate::games;
 use crate::joueur::errors;
 
 pub struct GameManager {
-    pub game_namespace: BaseNamespace,
+    pub game_namespace: Namespace,
 }
 
 impl GameManager {

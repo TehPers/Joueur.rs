@@ -1,6 +1,6 @@
 use crate::base::game;
 
-pub struct BaseNamespace {
+pub struct Namespace {
     pub game_name: String,
     pub game_version: String,
     pub player_name: String,
