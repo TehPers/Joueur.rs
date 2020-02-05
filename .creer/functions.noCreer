@@ -1,36 +1,63 @@
 <%
 if not 'rs' in shared:
+    import textwrap
+
     shared['rs'] = {}
 
-    def rs_type(type_obj):
-        base_type = type_obj['name']
+    def rs_type(type_obj, reference=True):
+        type_name = type_obj['name']
+        prefix = '&' if reference else ''
 
-        if base_type == 'dictionary':
-            return '&std::collections::HashMap<{}, {}>'.format(
+        if type_name == 'dictionary':
+            return prefix + 'std::collections::HashMap<{}, {}>'.format(
                 rs_type(type_obj['keyType']),
                 rs_type(type_obj['valueType'])
             )
-        elif base_type == 'list':
-            return '&[{}]'.format(rs_type(type_obj['valueType']))
-        elif base_type == 'int':
-            return '&i32'
-        elif  base_type == 'float':
-            return '&f64'
-        elif base_type == 'boolean':
-            return '&bool'
-        elif base_type == 'string':
-            return '&str'
+        elif type_name == 'list':
+            return prefix + '[{}]'.format(rs_type(type_obj['valueType']))
+        elif type_name == 'int':
+            return prefix + 'i32'
+        elif  type_name == 'float':
+            return prefix + 'f64'
+        elif type_name == 'boolean':
+            return prefix + 'bool'
+        elif type_name == 'string':
+            if reference:
+                return '&str'
+            else:
+                return 'String'
         elif type_obj['is_game_object']:
-            game_obj = '&dyn ' + base_type
+            game_obj = prefix + 'dyn ' + type_name
             if type_obj['nullable']:
-                return 'Optional<{}>'.format(game_obj)
+                return 'Option<{}>'.format(game_obj)
             return game_obj
     shared['rs']['type'] = rs_type
 
-    def rs_imports(obj, already_importing):
+    def rs_default(type_obj):
+        type_name = type_obj['name']
+        sdef = str(type_obj['default']) if 'default' in type_obj else ''
+
+        if type_name == 'dictionary':
+            return 'std::collections::HashMap::new()'
+        elif type_name == 'list':
+            return '[]'
+        elif type_name == 'int':
+            return sdef or '0'
+        elif  type_name == 'float':
+            return sdef or '0'
+        elif type_name == 'boolean':
+            return sdef.lower() or 'false'
+        elif type_name == 'string':
+            return '"{}".to_string()'.format(sdef)
+        elif type_obj['is_game_object']:
+            if type_obj['nullable']:
+                return 'None'
+            return '???' # not sure how we'd find a valid game object to always return...
+    shared['rs']['default'] = rs_default
+
+    def rs_imports(obj, obj_name, already_importing):
         importing = set(already_importing or [])
         def add(type_obj):
-            print("-----> ADD")
             type_name = type_obj['name']
             if type_name == 'dictionary' or type_name == 'list':
                 add(type_obj['valueType'])
@@ -39,8 +66,10 @@ if not 'rs' in shared:
 
         if 'attributes' in obj:
             for attr_name in obj['attribute_names']:
-                print("-----> OMG", attr_name)
                 add(obj['attributes'][attr_name]['type'])
+
+        if obj_name in importing:
+            importing.remove(obj_name)
 
         importing = sorted(importing)
         if not importing:
@@ -48,11 +77,63 @@ if not 'rs' in shared:
         return 'use crate::games::{}::{{\n{}\n}}'.format(underscore(game_name), '\n'.join(['    {},'.format(i) for i in importing]))
     shared['rs']['imports'] = rs_imports
 
-    def rs_function_top(func):
-        top = ['/// ', func['description'], '\n    fn ', underscore(func['name']),'(']
+    def rs_description(line):
+        return (line
+            .replace('true', '`true`')
+            .replace('True', '`true`')
+            .replace('false', '`false`')
+            .replace('False', '`false`')
+            .replace("'", '"')
+            .replace('null', 'None')
+            .replace('Null', '`None`')
+        )
+    shared['rs']['description'] = rs_description
+
+    def rs_docstring(obj, indent_level=1):
+        wrapper_prefix = ('    ' * indent_level) + '///'
+        wrapper = textwrap.TextWrapper(
+            width=(77 - len(wrapper_prefix)),
+            replace_whitespace=False,
+            expand_tabs=False,
+        )
+        docstring = '\n'.join(wrapper.wrap(rs_description(obj['description'])))
+
+        if 'arguments' in obj and len(obj['arguments']) > 0:
+            docstring += '\n\n# Arguments\n\n'
+            for arg in obj['arguments']:
+                docstring += '\n'.join(wrapper.wrap('* `{}` - {}'.format(arg['name'], rs_description(arg['description'])))) + '\n'
+        if 'returns' in obj and obj['returns']:
+            if not 'arguments' in obj or not len(obj['arguments']) > 0:
+                docstring += '\n'
+            docstring += '\n# Returns\n\n'
+            docstring += '\n'.join(wrapper.wrap((rs_description(obj['returns']['description']))))
+
+        return wrapper_prefix + ('\n' + wrapper_prefix).join([ '' if not line else (' ' + line) for line in  docstring.split('\n')])
+    shared['rs']['docstring'] = rs_docstring
+
+    def rs_function_top(func_name, func):
+        docstring = rs_docstring(func) + '\n'
+
+        fn = ['    fn ', underscore(func_name), '(']
         args = ["&self"]
         if func['arguments']:
             for i, arg in enumerate(func['arguments']):
-                args.extend(underscore(arg['name']), ': ', rs_type(arg['type']))
-        one_line_args = 
+                args.append(''.join([underscore(arg['name']), ': ', rs_type(arg['type'])]))
+        returns = []
+        if func['returns']:
+            returns.extend(['-> ', rs_type(func['returns']['type'], False)])
+        one_line_args = list(fn)
+        one_line_args.append(', '.join(args))
+        one_line_args.append(') ')
+        one_line_args.extend(returns)
+
+        as_one_line = ''.join(one_line_args)
+        if len(as_one_line) < 79:
+            return docstring + as_one_line
+        # else too long, so wrap each arg on a separate line
+        multi_lines = list(fn)
+        multi_lines.extend(['\n', ',\n'.join(args)], '\n)')
+        multi_lines.extend(returns)
+        return docstring + ''.join(multi_lines)
+    shared['rs']['function_top'] = rs_function_top
 %>

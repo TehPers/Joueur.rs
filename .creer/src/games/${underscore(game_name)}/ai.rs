@@ -1,10 +1,9 @@
-use crate::games::${underscore(game_name)}::{
-    Game,
-    Player,
-};
+<%include file='functions.noCreer' />${shared['rs']['imports'](ai, 'AI', ['Game', 'Player'])}
 
+/// This should be the string name of your Player in games it plays.
 pub static PLAYER_NAME: &str = "${game_name} Rust Player";
 
+/// This is your AI struct. Add fields to track state here if you wish.
 pub struct AI<'a> {
     /// The Player your AI controls in the Game.
     player: &'a Player,
@@ -25,9 +24,12 @@ impl AI<'a> {
 % for func_name in ai['function_names']:
 <%
     func = ai['functions'][func_name]
-%>    /// ${func['description']}
-${shared['rs']['function_top'](func)}
-        return${' {}'.format(shared['rs']['default'](func['returns']['type]) if func['returns'] else '')};
+    returns = ''
+    if func['returns']:
+        returns = ' {}'.format(shared['rs']['default'](func['returns']['type']))
+%>${shared['rs']['function_top'](func_name, func)} {
+        return${returns};
     }
+
 % endfor
 }
