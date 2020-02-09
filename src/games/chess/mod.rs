@@ -1,8 +1,8 @@
 mod ai;
 mod r#impl;
 
-use crate::base::{Namespace};
+use crate::base::{GameManager};
 
-pub fn make_namespace() -> impl Namespace {
-    return r#impl::NamespaceImpl::new();
+pub fn new_game_manager() -> impl GameManager {
+    return r#impl::GameManagerImpl::new();
 }

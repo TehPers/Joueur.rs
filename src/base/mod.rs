@@ -1,8 +1,8 @@
 mod game;
 pub use game::{Game, GameImpl};
 
-mod namespace;
-pub use namespace::{Namespace};
+mod game_manager;
+pub use game_manager::{GameManager};
 
 mod ai;
 pub use ai::{AI};

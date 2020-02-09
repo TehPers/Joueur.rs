@@ -1,8 +1,9 @@
+use crate::base::{GameManager};
 use crate::joueur::color;
 use crate::joueur::client::{Client};
 use crate::joueur::client_events;
 use crate::joueur::errors;
-use crate::joueur::game_manager::{GameManager};
+use crate::games;
 
 pub struct RunData {
     pub game_name: String,
@@ -43,11 +44,22 @@ pub fn run(run_data: &RunData) {
     client.send_event_alias(&run_data.game_name);
     let game_name = client.wait_for_event_named();
 
-    let game_manager = GameManager::new(&game_name);
+    let make_game_manager_result = games::get_game_manager(&game_name);
+    if make_game_manager_result.is_none() {
+        errors::handle_error(
+            errors::ErrorCode::GameNotFound,
+            &format!("Could not find a game with name '{}' to play", game_name),
+            None,
+        );
+    }
+
+    let new_game_manager = make_game_manager_result.unwrap();
+    let game_manager_box = new_game_manager();
+    let game_manager: &dyn GameManager = &*game_manager_box;
 
     let player_name =
         if run_data.player_name != "" { &run_data.player_name }
-        else if game_manager.game_namespace.player_name != "" { &game_manager.game_namespace.player_name }
+        else if game_manager.get_game_version() != "" { game_manager.get_player_name() }
         else { "Rust Player" };
 
     client.send_event_play(&client_events::ClientEventPlayData{
@@ -63,7 +75,7 @@ pub fn run(run_data: &RunData) {
     let lobbied_data = client.wait_for_event_lobbied();
     color::cyan(&format!("In lobby for game {} in session {}", &lobbied_data.game_name, &lobbied_data.game_session));
 
-    let our_game_version = game_manager.game_namespace.game_version;
+    let our_game_version = game_manager.get_game_version();
     if lobbied_data.game_version != our_game_version {
         color::yellow(&format!(
             "WARNING: Game versions do not match.
