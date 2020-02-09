@@ -10,7 +10,7 @@ pub struct NamespaceImpl {
 }
 
 impl NamespaceImpl {
-    fn new() -> NamespaceImpl {
+    pub fn new() -> NamespaceImpl {
         return NamespaceImpl{
             game: GameImpl::new(),
         };
@@ -22,11 +22,11 @@ impl Namespace for NamespaceImpl {
         return &self.game;
     }
 
-    fn get_game_version(&self) -> &'static {
+    fn get_game_version(&self) -> &'static str {
         return GAME_VERSION;
     }
 
-    fn get_player_name(&self) -> &'static {
+    fn get_player_name(&self) -> &'static str {
         return PLAYER_NAME;
     }
 }

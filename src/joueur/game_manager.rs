@@ -21,7 +21,7 @@ impl GameManager {
         let make_game_namespace = make_game_namespace_result.unwrap();
 
         return GameManager{
-            game_namespace: make_game_namespace()),
+            game_namespace: make_game_namespace(),
         }
     }
 }
