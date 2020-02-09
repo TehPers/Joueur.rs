@@ -3,7 +3,7 @@ use crate::games;
 use crate::joueur::errors;
 
 pub struct GameManager {
-    pub game_namespace: Namespace,
+    pub game_namespace: Box<dyn Namespace>,
 }
 
 impl GameManager {
@@ -21,7 +21,7 @@ impl GameManager {
         let make_game_namespace = make_game_namespace_result.unwrap();
 
         return GameManager{
-            game_namespace: make_game_namespace(),
+            game_namespace: make_game_namespace()),
         }
     }
 }

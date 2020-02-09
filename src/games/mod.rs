@@ -4,10 +4,10 @@ mod chess;
 
 use crate::base::{Namespace};
 
-pub fn get_game(game_name: &str) -> Option<fn() -> Namespace> {
+pub fn get_game(game_name: &str) -> Option<fn() -> Box<dyn Namespace>> {
     // for each game
     if game_name == "Chess" {
-        return Some(|| chess::make_namespace());
+        return Some(|| Box::new(chess::make_namespace()));
     }
     // end for each game
 

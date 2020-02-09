@@ -17,8 +17,8 @@ impl NamespaceImpl {
     }
 }
 
-impl Namespace<'a> for NamespaceImpl {
-    fn get_game(&'a self) -> &'a dyn Game {
+impl Namespace for NamespaceImpl {
+    fn get_game<'a>(&'a self) -> &'a dyn Game {
         return &self.game;
     }
 
