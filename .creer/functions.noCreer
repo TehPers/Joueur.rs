@@ -74,7 +74,7 @@ if not 'rs' in shared:
         importing = sorted(importing)
         if not importing:
             return ''
-        return 'use crate::games::{}::{{\n{}\n}}'.format(underscore(game_name), '\n'.join(['    {},'.format(i) for i in importing]))
+        return 'use crate::games::{}::{{\n{}\n}};'.format(underscore(game_name), '\n'.join(['    {},'.format(i) for i in importing]))
     shared['rs']['imports'] = rs_imports
 
     def rs_description(line):

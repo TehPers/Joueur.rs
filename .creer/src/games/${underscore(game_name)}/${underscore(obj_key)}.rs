@@ -40,7 +40,7 @@ ${shared['rs']['function_top'](func_name, func)};
 
     /// Returns an attempts to cast to a ${game_obj_name}.
     /// Is None when the cast is invalid, otherwise contains the valid cast.
-    fn as_${underscore(game_obj_name)}(&self) -> Option${'<'}&${game_obj_name}>;
+    fn as_${underscore(game_obj_name)}(&self) -> Option${'<'}&dyn ${game_obj_name}>;
 % endfor
 % endif
 }
