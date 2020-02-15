@@ -4,9 +4,12 @@ if not 'rs' in shared:
 
     shared['rs'] = {}
 
-    def rs_type(type_obj, reference=True):
+    def rs_type(type_obj, impl=False):
         type_name = type_obj['name']
-        prefix = '&' if reference else ''
+
+        prefix = ''
+        if not impl:
+            prefix = '&'
 
         if type_name == 'dictionary':
             return prefix + 'std::collections::HashMap<{}, {}>'.format(
@@ -14,7 +17,11 @@ if not 'rs' in shared:
                 rs_type(type_obj['valueType'])
             )
         elif type_name == 'list':
-            return prefix + '[{}]'.format(rs_type(type_obj['valueType']))
+            child = rs_type(type_obj['valueType'], prefix)
+            if prefix:
+                return prefix + '[{}]'.format(child)
+            else:
+                return 'Vec<{}>'.format(child)
         elif type_name == 'int':
             return prefix + 'i32'
         elif  type_name == 'float':
@@ -22,12 +29,15 @@ if not 'rs' in shared:
         elif type_name == 'boolean':
             return prefix + 'bool'
         elif type_name == 'string':
-            if reference:
-                return '&str'
-            else:
+            if impl:
                 return 'String'
+            else:
+                return '&str'
         elif type_obj['is_game_object']:
-            game_obj = prefix + 'dyn ' + type_name
+            if impl:
+                return 'String'
+
+            game_obj = '& dyn ' + type_name
             if type_obj['nullable']:
                 return 'Option<{}>'.format(game_obj)
             return game_obj
@@ -40,7 +50,7 @@ if not 'rs' in shared:
         if type_name == 'dictionary':
             return 'std::collections::HashMap::new()'
         elif type_name == 'list':
-            return '[]'
+            return 'vec!()'
         elif type_name == 'int':
             return sdef or '0'
         elif  type_name == 'float':
@@ -50,9 +60,7 @@ if not 'rs' in shared:
         elif type_name == 'string':
             return '"{}".to_string()'.format(sdef)
         elif type_obj['is_game_object']:
-            if type_obj['nullable']:
-                return 'None'
-            return '???' # not sure how we'd find a valid game object to always return...
+            return 'None'
     shared['rs']['default'] = rs_default
 
     def rs_imports(obj, obj_name, already_importing):
@@ -68,7 +76,7 @@ if not 'rs' in shared:
             for attr_name in obj['attribute_names']:
                 add(obj['attributes'][attr_name]['type'])
 
-        if obj_name in importing:
+        if obj_name in importing and obj_name not in already_importing:
             importing.remove(obj_name)
 
         importing = sorted(importing)
