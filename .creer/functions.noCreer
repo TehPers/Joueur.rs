@@ -17,7 +17,7 @@ if not 'rs' in shared:
                 rs_type(type_obj['valueType'])
             )
         elif type_name == 'list':
-            child = rs_type(type_obj['valueType'], prefix)
+            child = rs_type(type_obj['valueType'], impl)
             if prefix:
                 return prefix + '[{}]'.format(child)
             else:
@@ -60,7 +60,7 @@ if not 'rs' in shared:
         elif type_name == 'string':
             return '"{}".to_string()'.format(sdef)
         elif type_obj['is_game_object']:
-            return 'None'
+            return '"".to_string()'
     shared['rs']['default'] = rs_default
 
     def rs_imports(obj, obj_name, already_importing):
