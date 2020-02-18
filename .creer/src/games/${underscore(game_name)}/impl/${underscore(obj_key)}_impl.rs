@@ -20,7 +20,8 @@ impl base::Game for GameImpl {
     }
 }
 % else:
-<%include file='functions.noCreer' />${shared['rs']['imports'](obj, obj_key, ['GameManagerImpl', obj_key] + obj['parentClasses'])}
+<%include file='functions.noCreer' />use serde::ser::{Serialize, Serializer, SerializeStruct};
+${shared['rs']['imports'](obj, obj_key, ['GameManagerImpl', obj_key] + obj['parentClasses'])}
 <%
 objs = [(obj_key, obj)] + [ (n, game_objs[n]) for n in obj['parentClasses'] ]
 objs = [r for r in reversed(objs)]
@@ -54,6 +55,17 @@ pub struct ${obj_key}Impl<'a> {
 %>    pub ${field_name}_impl: ${shared['rs']['type'](attr['type'], True)},
 %       endfor
 %   endfor
+}
+
+impl Serialize for ${obj_key}Impl {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("${obj_key}", 1)?;
+        state.serialize_field("id", &self.id_impl)?;
+        state.end()
+    }
 }
 
 %   for i, parent in enumerate(objs):
@@ -108,6 +120,25 @@ impl ${parent[0]} for ${obj_key}Impl {
 %>
     fn ${func_name}(&mut self${', '.join(arg_strs)}) ${ret_signature}{
         // TODO: do
+        ${'let result = ' if func_name['returns'] else ''}self.game_manager.run_on_server(
+            &self.id_impl,
+            "${func_name}",
+             json!({
+%           for arg in func['arguments']:
+                "${arg['name']}": &${underscore(arg['name'])},
+%           endfor
+             }),
+        );
+%           if func['returns']:
+        de_result = serde_json::from_value::<${shared['rs']['type'](func['returns']['type'], True)}>(result);
+        if de_result.is_err() {
+            self.game_manager.handle_deserialization_error(
+                &de_result.unwrap_err(),
+                format!("${obj_key}.${function_names}() id:{}", self.id_impl),
+            );
+        }
+        return de_result.unwrap();
+%           endif
     }
 %       endfor
 }
