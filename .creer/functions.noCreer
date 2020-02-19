@@ -35,7 +35,7 @@ if not 'rs' in shared:
                 return '&str'
         elif type_obj['is_game_object']:
             if impl:
-                return 'String'
+                return 'Option<{}Ref>'.format(type_name)
 
             game_obj = '& dyn ' + type_name
             if type_obj['nullable']:
@@ -58,9 +58,9 @@ if not 'rs' in shared:
         elif type_name == 'boolean':
             return sdef.lower() or 'false'
         elif type_name == 'string':
-            return '"{}".to_string()'.format(sdef)
+            return '"{}".to_string()'.format(sdef) if sdef else 'String::new()'
         elif type_obj['is_game_object']:
-            return '"".to_string()'
+            return 'None'
     shared['rs']['default'] = rs_default
 
     def rs_imports(obj, obj_name, already_importing):
@@ -144,4 +144,22 @@ if not 'rs' in shared:
         multi_lines.extend(returns)
         return docstring + ''.join(multi_lines)
     shared['rs']['function_top'] = rs_function_top
+
+    def rs_deep_type_name(base_type):
+        type_name = base_type['name']
+        if type_name == 'list':
+            return 'list_of_{}'.format(rs_deep_type_name(base_type['valueType']))
+        if type_name == 'dictionary':
+            return 'map_of_{}_to_{}'.format(rs_deep_type_name(base_type['keyType']), rs_deep_type_name(base_type['valueType']))
+        if base_type['is_game_object']:
+            return 'game_object_ref'
+        # default case
+        return underscore(type_name)
+    shared['rs']['deep_type_name'] = rs_deep_type_name
+
+    def rs_parents(obj_key, obj):
+        objs = [(obj_key, obj)] + [ (n, game_objs[n]) for n in obj['parentClasses'] ]
+        objs = [r for r in reversed(objs)]
+        return objs
+    shared['rs']['parents'] = rs_parents
 %>
