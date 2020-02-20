@@ -12,6 +12,13 @@ pub struct ${obj_key}Ref<'a> {
 }
 
 impl<'a> ${obj_key}Ref<'a> {
+    fn new(id: &str, game_manager: &'a GameManagerImpl) {
+        ${obj_key}Ref {
+            id: id.to_string(),
+            game_manager: game_manager,
+        }
+    }
+
     fn get_impl(&self) -> &${obj_key}Impl {
         self.game_manager.get_game_object_impl(&self.id)
     }
@@ -44,30 +51,9 @@ impl ${parent[0]} for ${obj_key}Ref {
 %           endif
 <%
             attr = parent[1]['attributes'][attr_name]
-            attr_type = attr['type']
-            fn_body = []
-            if attr_type['is_game_object']:
-                class_name = attr_type['name']
-                underscore_name = underscore(class_name)
-                impl_name = '{}_id_impl'.format(underscore_name)
-                casting = 'game_object.as_{}()'.format(underscore_name)
-                fn_body.append('let game_object = self.game_manager.get(&self.{});'.format(impl_name))
-                if attr_type['nullable']:
-                    fn_body.append('return {};'.format(casting))
-                else:
-                    fn_body.extend([
-                        'if {}.is_none() {{'.format(underscore_name),
-                        '    self.game_manager.handle_no_game_object(&self.{}, "{}");'.format(impl_name, class_name),
-                        '}',
-                        'return {}.unwrap();'.format(underscore_name)
-                    ])
-            else:
-                fn_body.append('return &self.{}_impl;'.format(underscore(attr_name)))
 
-%>    fn ${underscore(attr_name)}(&self): ${shared['rs']['type'](attr_type)} {
-%           for fn_body_line in fn_body:
-        ${fn_body_line}
-%           endfor
+%>    fn ${underscore(attr_name)}(&self): ${shared['rs']['type'](attr['type'])} {
+        return &self.get_impl().${underscore(attr_name)};
     }
 %       endfor
 %       for j, func_name in enumerate(parent[1]['function_names']):
@@ -114,12 +100,3 @@ impl ${parent[0]} for ${obj_key}Ref {
 %       endif
 }
 %   endfor
-
-impl<'a> ${obj_key}Ref<'a> {
-    fn new(id: &str, game_manager: &'a GameManagerImpl) {
-        ${obj_key}Ref {
-            id: id.to_string(),
-            game_manager: game_manager,
-        }
-    }
-}

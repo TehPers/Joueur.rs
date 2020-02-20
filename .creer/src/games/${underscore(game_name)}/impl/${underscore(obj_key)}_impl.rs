@@ -35,14 +35,14 @@ pub struct ${obj_key}Impl {
 %       for attr_name in parent[1]['attribute_names']:
 <%
             attr = parent[1]['attributes'][attr_name]
-%>    pub ${underscore(attr_name)}_impl: ${shared['rs']['type'](attr['type'], True)},
+%>    pub ${underscore(attr_name)}: ${shared['rs']['type'](attr['type'], True)},
 %       endfor
 %   endfor
 }
 
 impl ${obj_key}Impl {
     fn new() -> ${obj_key}Impl {
-        ${obj_key}Impl {
+        ${obj_key}Impl{
 %   for i, parent in enumerate(parents):
 %       if i > 0:
 
@@ -50,7 +50,7 @@ impl ${obj_key}Impl {
 %       for attr_name in parent[1]['attribute_names']:
 <%
             attr = parent[1]['attributes'][attr_name]
-%>            ${underscore(attr_name)}_impl: ${shared['rs']['default'](attr['type'])},
+%>            ${underscore(attr_name)}: ${shared['rs']['default'](attr['type'])},
 %       endfor
 %   endfor
         }
@@ -62,7 +62,7 @@ impl ${obj_key}Impl {
 %       for attr_name in parent[1]['attribute_names']:
 <%
             attr = parent[1]['attributes'][attr_name]
-%>            "${attr_name}" => dv.${shared['rs']['deep_type_name'](attr['type'])}(&self.${underscore(attr_name)}_impl)?,
+%>            "${attr_name}" => dv.${shared['rs']['deep_type_name'](attr['type'])}(&self.${underscore(attr_name)})?,
 %       endfor
 %   endfor
             _ => return Err(serde_json::Error::custom(

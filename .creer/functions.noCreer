@@ -34,10 +34,7 @@ if not 'rs' in shared:
             else:
                 return '&str'
         elif type_obj['is_game_object']:
-            if impl:
-                return 'Option<{}Ref>'.format(type_name)
-
-            game_obj = '& dyn ' + type_name
+            game_obj = (type_name + 'Ref') if impl else ('&dyn ' + type_name)
             if type_obj['nullable']:
                 return 'Option<{}>'.format(game_obj)
             return game_obj
@@ -60,7 +57,9 @@ if not 'rs' in shared:
         elif type_name == 'string':
             return '"{}".to_string()'.format(sdef) if sdef else 'String::new()'
         elif type_obj['is_game_object']:
-            return 'None'
+            if type_obj['nullable']:
+                return 'None'
+            return type_name + 'Ref::new()'
     shared['rs']['default'] = rs_default
 
     def rs_imports(obj, obj_name, already_importing):
